@@ -1,0 +1,25 @@
+[workspace]
+members = ["contracts/*"]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+authors = ["Le Turt <89463679+LeTurt333@users.noreply.github.com>"]
+edition = "2021"
+publish = false
+keywords = ["cosmwasm", "nft"]
+
+[workspace.dependencies]
+cosmwasm-std = "1.2.1"
+cosmwasm-schema = "1.2.1"
+schemars = "0.8.11"
+serde = {version = "1.0.152", default-features = false, features = ["derive"]}
+cw-storage-plus = "1.0.1"
+
+[profile.release]
+rpath = false
+lto = true
+overflow-checks = true
+opt-level = 3
+debug = false
+debug-assertions = false

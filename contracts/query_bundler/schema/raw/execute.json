@@ -1,0 +1,80 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ExecuteMsg",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": [
+        "get_u_u_i_ds"
+      ],
+      "properties": {
+        "get_u_u_i_ds": {
+          "type": "object",
+          "required": [
+            "num_uuid"
+          ],
+          "properties": {
+            "entropy": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "num_uuid": {
+              "type": "integer",
+              "format": "uint8",
+              "minimum": 0.0
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "nois_receive"
+      ],
+      "properties": {
+        "nois_receive": {
+          "type": "object",
+          "required": [
+            "callback"
+          ],
+          "properties": {
+            "callback": {
+              "$ref": "#/definitions/NoisCallback"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  ],
+  "definitions": {
+    "HexBinary": {
+      "description": "This is a wrapper around Vec<u8> to add hex de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is similar to `cosmwasm_std::Binary` but uses hex. See also <https://github.com/CosmWasm/cosmwasm/blob/main/docs/MESSAGE_TYPES.md>.",
+      "type": "string"
+    },
+    "NoisCallback": {
+      "description": "This must be accepted in an `NoisReceive { callback: NoisCallback }` enum case in the ExecuteMsg of the app.",
+      "type": "object",
+      "required": [
+        "job_id",
+        "randomness"
+      ],
+      "properties": {
+        "job_id": {
+          "description": "The ID chosen by the caller for this job. Use this field to map responses to requests.",
+          "type": "string"
+        },
+        "randomness": {
+          "$ref": "#/definitions/HexBinary"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
