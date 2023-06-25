@@ -3,7 +3,7 @@ members = ["contracts/*"]
 resolver = "2"
 
 [workspace.package]
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Le Turt <89463679+LeTurt333@users.noreply.github.com>"]
 edition = "2021"
 publish = false

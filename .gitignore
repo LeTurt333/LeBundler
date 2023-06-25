@@ -2,6 +2,10 @@
 /contracts/**/target
 /artifacts
 /cw721-query-bundler/**/**/target
+/NOTEPAD.md
+/TODO.md
+/scripts
+/scripts/**
 
 .DS_Store
 Thumbs.db
