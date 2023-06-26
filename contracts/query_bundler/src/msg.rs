@@ -11,17 +11,33 @@ pub enum ExecuteMsg {}
 #[derive(QueryResponses)]
 pub enum QueryMsg {
     #[returns(Binary)]
-    BundleQuerySmart {
+    Cw721BundleQuerySmart {
         token_ids: Vec<String>,
         contract: String
     },
     #[returns(Binary)]
-    BundleQueryRaw {
+    Cw721BundleQueryRaw {
         token_ids: Vec<String>,
         contract: String
     },
     #[returns(Binary)]
-    BundleQueryIds {
+    Cw721BundleQueryIds {
+        loop_limit: u32,
+        contract: String,
+        start_after: Option<String>
+    },
+    #[returns(Binary)]
+    Cw20BundleQuerySmart {
+        accounts: Vec<String>,
+        contract: String
+    },
+    #[returns(Binary)]
+    Cw20BundleQueryRaw {
+        accounts: Vec<String>,
+        contract: String
+    },
+    #[returns(Binary)]
+    Cw20BundleQueryAccounts {
         loop_limit: u32,
         contract: String,
         start_after: Option<String>

@@ -1,6 +1,6 @@
-# CW721 Query Bundler
+# LeBundler
 
-A tooling contract to bundle `CW721` queries, as well as a basic example of using CosmWasm Raw Queries to save on gas
+A tooling contract to bundle `CW721` and `CW20` queries, as well as a basic example of using CosmWasm Raw Queries to save on gas
 
 # The Problem
 
