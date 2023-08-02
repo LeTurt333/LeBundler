@@ -1,10 +1,11 @@
 #[cfg(not(feature = "library"))]
 use crate::{
-    error::{ContractError}, 
+    error::ContractError, 
     msg::{ExecuteMsg, InstantiateMsg, QueryMsg},
     query::{
         cw721_bundle_query_ids, cw721_bundle_query_raw, cw721_bundle_query_smart,
-        cw20_bundle_query_accounts, cw20_balances_bundle_query_raw, cw20_balances_bundle_query_smart
+        cw20_bundle_query_accounts, cw20_balances_bundle_query_raw, cw20_balances_bundle_query_smart,
+        generic_string_bundle_query_raw, generic_uint_bundle_query_raw
     },
 };
 use cosmwasm_std::{
@@ -36,7 +37,6 @@ pub fn execute(
     Err(ContractError::GenericError("Execute disabled".to_string()))
 }
 
-
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(
     deps: Deps,
@@ -54,9 +54,10 @@ pub fn query(
         } => to_binary(&cw721_bundle_query_raw(deps, token_ids, contract)?),
         QueryMsg::Cw721BundleQueryIds {
             loop_limit,
+            max_limit,
             contract,
             start_after
-        } => to_binary(&cw721_bundle_query_ids(deps, loop_limit, contract, start_after)?),
+        } => to_binary(&cw721_bundle_query_ids(deps, loop_limit, max_limit, contract, start_after)?),
         QueryMsg::Cw20BundleQuerySmart { 
             accounts, 
             contract 
@@ -69,18 +70,25 @@ pub fn query(
             loop_limit, 
             contract, 
             start_after 
-        } => to_binary(&cw20_bundle_query_accounts(deps, loop_limit, contract, start_after)?)
+        } => to_binary(&cw20_bundle_query_accounts(deps, loop_limit, contract, start_after)?),
+        QueryMsg::GenericStringBundleQueryRaw { 
+            keys,
+            namespace, 
+            contract 
+        } => to_binary(&generic_string_bundle_query_raw(deps, keys, namespace, contract)?),
+        QueryMsg::GenericUIntBundleQueryRaw { 
+            keys, 
+            keytype,
+            namespace, 
+            contract 
+        } => to_binary(&generic_uint_bundle_query_raw(deps, keys, keytype, namespace, contract)?)
     }
 }
-
-
 
 #[cfg(test)]
 #[allow(dead_code, unused)]
 mod tests {
     use super::*;
-    use cw_storage_plus::Map;
-    use std::fmt::Display;
     use cosmwasm_std::Binary;
 
     #[test]

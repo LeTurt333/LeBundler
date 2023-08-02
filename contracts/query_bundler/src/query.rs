@@ -2,8 +2,8 @@ use cosmwasm_schema::cw_serde;
 use cw20::{AllAccountsResponse, BalanceResponse};
 use serde::{Serialize, de::DeserializeOwned};
 use crate::{
-    error::{ErrorToMsg}, 
-    encoding::{raw_map_key}
+    error::ErrorToMsg, 
+    encoding::ToRawKey, msg::IntType
 };
 use cosmwasm_std::{
     to_binary, Binary, Deps, QueryRequest, Empty,
@@ -96,7 +96,7 @@ pub fn cw721_bundle_query_raw(
     for id in token_ids.iter() {
         
         // If key encoding fails for any token_id, the entire call fails
-        let key = raw_map_key("tokens", id)?;
+        let key = id.to_raw_map_key("tokens")?;
 
         let request: QueryRequest<Empty> = WasmQuery::Raw {
             contract_addr: contract.clone(),
@@ -138,6 +138,7 @@ pub fn cw721_bundle_query_ids(
     // Number of loops to complete
     // 1 loop = 100 token_ids to query
     loop_limit: u32,
+    max_limit: Option<u32>,
     contract: String,
     start_after: Option<String>
 ) -> StdResult<Binary> {
@@ -153,7 +154,7 @@ pub fn cw721_bundle_query_ids(
         let msg = to_binary(&cw721::Cw721QueryMsg::AllTokens {
             start_after,
             // Default limit is 10, max limit is 100
-            limit: Some(100_u32),
+            limit: max_limit.or(Some(100u32)),
         })?;
 
         let response: TokensResponse = deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
@@ -164,8 +165,8 @@ pub fn cw721_bundle_query_ids(
         // Update start_after for next query
         start_after = response.tokens.last().cloned();
 
-        // If response length is less than 100, set count to loop_limit to stop firing queries
-        if response.tokens.len() < 100 {
+        // If response length is less than 100 or max_limit, set count to loop_limit to stop firing queries
+        if response.tokens.len() < max_limit.unwrap_or_else(|| 100).try_into().map_err(|_e| StdError::GenericErr { msg: "invalid max limit".to_string() })? {
             count = loop_limit;
         } else {
             count += 1;
@@ -235,7 +236,7 @@ pub fn cw20_balances_bundle_query_raw(
         // You may want to add that here depending on your preference
          
         // If key encoding fails for any account, the entire call fails
-        let key = raw_map_key("balance", account)?;
+        let key = account.to_raw_map_key("balance")?;
 
         let request: QueryRequest<Empty> = WasmQuery::Raw {
             contract_addr: contract.clone(),
@@ -315,5 +316,123 @@ pub fn cw20_bundle_query_accounts(
 
     to_binary(&accounts)
 
+}
+
+
+
+// ----------------------------------------------------------------- Generic
+
+pub fn generic_string_bundle_query_raw(
+    deps: Deps,
+    keys: Vec<String>,
+    namespace: String,
+    contract: String
+) -> StdResult<Binary> {
+
+    let _validate = deps.api.addr_validate(contract.as_str())?;
+
+    let mut res: Vec<(String, QueryResRaw)> = Vec::with_capacity(keys.len());
+
+    for k in keys.iter() {
+
+        // If key encoding fails for any token_id, the entire call fails
+        let key = k.to_raw_map_key(namespace.as_str())?;
+
+        let request: QueryRequest<Empty> = WasmQuery::Raw {
+            contract_addr: contract.clone(),
+            key
+        }.into();
+    
+        // If query request serialization fails for any token_id, the entire call fails
+        let raw = cosmwasm_std::to_vec(&request).map_err(|serialize_err| {
+            StdError::generic_err(format!("Serializing QueryRequest: {}", serialize_err))
+        })?;
+
+        // Entire call only fails if raw_query results in aSystem Error,
+        // If query results in Contract Error or Success, value is returned
+        let response = deps.querier.raw_query(&raw)
+            .into_result()
+            .map_err(|e| StdError::generic_err(format!("System Err: {}", e)))
+            .and_then(|val| match val {
+                ContractResult::Err(err) => Ok(QueryResRaw::error(err)),
+                ContractResult::Ok(val) => {
+                    // Handle null byte, which means key did not exist
+                    if val.len() == 0 {
+                        return Ok(QueryResRaw::error("Nonexistent key"));
+                    } else {
+                        return Ok(QueryResRaw::success(val.to_base64()));
+                    }
+                }
+            })?;
+
+        res.push((k.to_owned(), response));
+    }
+
+    to_binary(&res)
+}
+
+
+
+pub fn generic_uint_bundle_query_raw(
+    deps: Deps,
+    keys: Vec<u64>,
+    keytype: IntType,
+    namespace: String,
+    contract: String
+) -> StdResult<Binary> {
+
+    let _validate = deps.api.addr_validate(contract.as_str())?;
+
+    let mut res: Vec<(String, QueryResRaw)> = Vec::with_capacity(keys.len());
+
+    for k in keys.iter() {
+        // If key encoding fails for any token_id, the entire call fails
+        // The cast is necessary because different int sizes have different
+        // byte representations thus produce differnt keys
+        let key = match keytype {
+            IntType::U8 => u8::try_from(*k)
+                .map_err(|_e| StdError::generic_err("u8 key overflow"))?
+                .to_raw_map_key(namespace.as_str()),
+            IntType::U16 => u16::try_from(*k)
+                .map_err(|_e| StdError::generic_err("u16 key overflow"))?
+                .to_raw_map_key(namespace.as_str()),
+            IntType::U32 => u32::try_from(*k)
+                .map_err(|_e| StdError::generic_err("u32 key overflow"))?
+                .to_raw_map_key(namespace.as_str()),
+            IntType::U64 => k.to_raw_map_key(namespace.as_str()),
+            IntType::U128 => (*k as u128).to_raw_map_key(namespace.as_str()),
+        }?;
+
+        let request: QueryRequest<Empty> = WasmQuery::Raw {
+            contract_addr: contract.clone(),
+            key
+        }.into();
+    
+        // If query request serialization fails for any token_id, the entire call fails
+        let raw = cosmwasm_std::to_vec(&request).map_err(|serialize_err| {
+            StdError::generic_err(format!("Serializing QueryRequest: {}", serialize_err))
+        })?;
+
+        // Entire call only fails if raw_query results in aSystem Error,
+        // If query results in Contract Error or Success, value is returned
+        let response = deps.querier.raw_query(&raw)
+            .into_result()
+            .map_err(|e| StdError::generic_err(format!("System Err: {}", e)))
+            .and_then(|val| match val {
+                ContractResult::Err(err) => Ok(QueryResRaw::error(err)),
+                ContractResult::Ok(val) => {
+                    // Handle null byte, which means key did not exist
+                    if val.len() == 0 {
+                        return Ok(QueryResRaw::error("Nonexistent key"));
+                    } else {
+                        return Ok(QueryResRaw::success(val.to_base64()));
+                    }
+                }
+            })?;
+
+        res.push((k.to_string(), response));
+    }
+
+    to_binary(&res)
 }
 

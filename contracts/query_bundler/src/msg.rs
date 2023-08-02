@@ -23,6 +23,7 @@ pub enum QueryMsg {
     #[returns(Binary)]
     Cw721BundleQueryIds {
         loop_limit: u32,
+        max_limit: Option<u32>,
         contract: String,
         start_after: Option<String>
     },
@@ -41,5 +42,27 @@ pub enum QueryMsg {
         loop_limit: u32,
         contract: String,
         start_after: Option<String>
-    }
+    },
+    #[returns(Binary)]
+    GenericStringBundleQueryRaw {
+        keys: Vec<String>,
+        namespace: String,
+        contract: String,
+    },
+    #[returns(Binary)]
+    GenericUIntBundleQueryRaw {
+        keys: Vec<u64>,
+        keytype: IntType,
+        namespace: String,
+        contract: String,
+    },
+}
+
+#[cw_serde]
+pub enum IntType {
+    U8,
+    U16,
+    U32,
+    U64,
+    U128
 }
